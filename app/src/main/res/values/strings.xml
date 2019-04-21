@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">PAE_Project</string>
+    <string name="access_token">pk.eyJ1IjoieWVxazk3IiwiYSI6ImNqdXF6Z3JzdTA4NzY0NG9jdmhvc2YwYXoifQ.TyC6mUlL8Shj5U_B0r4OPw</string>
+    <string name="action_download">Download</string>
+    <string name="action_list">Offline Areas</string>
+
+    <string name="dialog_title">Nom de la nova regió</string>
+    <string name="dialog_message">Descarrega la regió de mapa que estàs veient</string>
+    <string name="dialog_positive_button">Descarrega</string>
+    <string name="dialog_negative_button">Cancel·la</string>
+    <string name="dialog_toast">El nom de la regió no pot ser buit.</string>
+    <string name="end_progress_success">Regió descarregada amb èxit.</string>
+    <string name="toast_no_regions_yet">Encara no tens cap regió.</string>
+    <string name="toast_region_deleted">Regio esborrada</string>
+    <string name="navigate_positive_button">Vés a </string>
+    <string name="navigate_neutral_button_title">Esborra</string>
+    <string name="navigate_negative_button_title">Cancel·la</string>
+    <string name="navigate_title">Llista</string>
+    <string name="region_name">Regió %1$d</string>
+    <string name="set_region_name_hint">Posa el nom</string>
+
+    <string name="user_location_permission_explanation">Aquesta app necessita permisos per mostrar la seva funcionalitat.</string>
+    <string name="user_location_permission_not_granted">No heu proporcionat permisos de localització.</string>
+
+
+
+</resources>
