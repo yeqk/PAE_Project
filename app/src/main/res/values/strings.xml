@@ -12,6 +12,8 @@
     <string name="end_progress_success">Regió descarregada amb èxit.</string>
     <string name="toast_no_regions_yet">Encara no tens cap regió.</string>
     <string name="toast_region_deleted">Regio esborrada</string>
+    <string name="toast_map_too_large">Regio definida massa gran.</string>
+    <string name="limit_exceeded">El mapa conté més de 6000 cel·les.</string>
     <string name="navigate_positive_button">Vés a </string>
     <string name="navigate_neutral_button_title">Esborra</string>
     <string name="navigate_negative_button_title">Cancel·la</string>
