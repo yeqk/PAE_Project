@@ -1,5 +1,6 @@
 package com.example.pae_project;
 
+import android.location.Location;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -22,6 +23,7 @@ import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
+import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
@@ -38,6 +40,7 @@ import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
+import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
 import org.json.JSONObject;
 
@@ -48,6 +51,9 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements PermissionsListener {
 
     private static final String TAG = "OffManActivity";
+
+    private static final String HEATMAP_SOURCE_ID = "HEATMAP_SOURCE_ID";
+    private static final String HEATMAP_LAYER_ID = "HEATMAP_LAYER_ID";
 
     private PermissionsManager permissionsManager;
 
@@ -69,6 +75,10 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
     private OfflineManager offlineManager;
     private OfflineRegion offlineRegion;
 
+    private LocationComponent locationComponent;
+
+
+    private HeatMap hm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,11 +107,16 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
                         enableLocationComponent(style);
 
-
+                        hm = new HeatMap(MainActivity.this);
+                        hm.addANT_2GSource(style);
+                        hm.addHeatmapLayer(style);
+                        hm.addCircleLayer(style);
                     }
                 });
             }
         });
+
+
     }
 
     @Override
@@ -137,7 +152,8 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         if (PermissionsManager.areLocationPermissionsGranted(this)) {
 
 // Get an instance of the component
-            LocationComponent locationComponent = map.getLocationComponent();
+            locationComponent = map.getLocationComponent();
+
 
 // Activate with options
             locationComponent.activateLocationComponent(
@@ -151,6 +167,22 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
 // Set the component's render mode
             locationComponent.setRenderMode(RenderMode.COMPASS);
+
+            //Floating action button
+            FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.compass);
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Location loc = locationComponent.getLastKnownLocation();
+                    CameraPosition position = new CameraPosition.Builder()
+                            .target(new LatLng(loc.getLatitude(), loc.getLongitude()))
+                            .build();// Sets the new camera position
+
+                    map.animateCamera(CameraUpdateFactory
+                            .newCameraPosition(position), 7000);
+                }
+            });
+
         } else {
             permissionsManager = new PermissionsManager(this);
             permissionsManager.requestLocationPermissions(this);
@@ -188,6 +220,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
     protected void onStart() {
         super.onStart();
         mapView.onStart();
+
     }
 
     @Override
@@ -269,47 +302,62 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 // Define offline region parameters, including bounds,
 // min/max zoom, and metadata
 
-// Start the progressBar
-        startProgress();
+
 
 // Create offline definition using the current
 // style and boundaries of visible map area
         String styleUrl = map.getStyle().getUrl();
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
-        double minZoom = map.getCameraPosition().zoom;
-        double maxZoom = map.getMaxZoomLevel();
-        float pixelRatio = this.getResources().getDisplayMetrics().density;
-        OfflineTilePyramidRegionDefinition definition = new OfflineTilePyramidRegionDefinition(
-                styleUrl, bounds, minZoom, maxZoom, pixelRatio);
+        Log.d("Bouuunds:",  bounds.toString());
+
+        //Limit of map size that can be downloaded
+        double lat = bounds.getLatNorth()- bounds.getLatSouth();
+        double lon = bounds.getLonEast()- bounds .getLonWest();
+        double limitLat = 1.0;
+        //The map is too large
+        if (Math.abs(lat) > limitLat || Math.abs(lon) > 2) {
+            Toast.makeText(getApplicationContext(), getString(R.string.toast_map_too_large), Toast.LENGTH_SHORT).show();
+        } else {
+
+            // Start the progressBar
+            startProgress();
+
+            double minZoom = map.getCameraPosition().zoom;
+            double maxZoom = map.getMaxZoomLevel();
+            float pixelRatio = this.getResources().getDisplayMetrics().density;
+            OfflineTilePyramidRegionDefinition definition = new OfflineTilePyramidRegionDefinition(
+                    styleUrl, bounds, minZoom, maxZoom, pixelRatio);
 
 // Build a JSONObject using the user-defined offline region title,
 // convert it into string, and use it to create a metadata variable.
 // The metadata variable will later be passed to createOfflineRegion()
-        byte[] metadata;
-        try {
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put(JSON_FIELD_REGION_NAME, regionName);
-            String json = jsonObject.toString();
-            metadata = json.getBytes(JSON_CHARSET);
-        } catch (Exception exception) {
-            Log.d("Enode", "Failed to encode metadata: " + exception.getMessage());
-            metadata = null;
-        }
+            byte[] metadata;
+            try {
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put(JSON_FIELD_REGION_NAME, regionName);
+                String json = jsonObject.toString();
+                metadata = json.getBytes(JSON_CHARSET);
+            } catch (Exception exception) {
+                Log.d("Enode", "Failed to encode metadata: " + exception.getMessage());
+                metadata = null;
+            }
 
 // Create the offline region and launch the download
-        offlineManager.createOfflineRegion(definition, metadata, new OfflineManager.CreateOfflineRegionCallback() {
-            @Override
-            public void onCreate(OfflineRegion offlineRegion) {
-                Log.d("C", "Offline region created: " + regionName);
-                MainActivity.this.offlineRegion = offlineRegion;
-                launchDownload();
-            }
+            offlineManager.createOfflineRegion(definition, metadata, new OfflineManager.CreateOfflineRegionCallback() {
+                @Override
+                public void onCreate(OfflineRegion offlineRegion) {
+                    Log.d("C", "Offline region created: " + regionName);
+                    MainActivity.this.offlineRegion = offlineRegion;
+                    launchDownload();
+                }
 
-            @Override
-            public void onError(String error) {
-                Log.e("Error", error);
-            }
-        });
+                @Override
+                public void onError(String error) {
+                    Log.e("Error", error);
+                }
+            });
+        }
+
     }
 
     private void launchDownload() {
@@ -340,14 +388,16 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
             @Override
             public void onError(OfflineRegionError error) {
-                Log.e("Error", error.getReason());
-                Log.e("Error", error.getMessage());
+                Log.e("Error at dwl", error.getReason());
+                Log.e("Error at dwl2", error.getMessage());
 
             }
 
             @Override
             public void mapboxTileCountLimitExceeded(long limit) {
-                Log.e("Limit", "Mapbox tile count limit exceeded: " + limit);
+                Log.d("Limit", "Mapbox tile count limit exceeded: " + limit);
+                endProgress(getString(R.string.limit_exceeded));
+                Toast.makeText(getApplicationContext(), getString(R.string.limit_exceeded), Toast.LENGTH_SHORT).show();
 
             }
         });
