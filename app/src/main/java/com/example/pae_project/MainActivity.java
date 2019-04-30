@@ -1,5 +1,6 @@
 package com.example.pae_project;
 
+import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -83,6 +84,13 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Boolean firstRun = getSharedPreferences("PREFERENCE",MODE_PRIVATE).getBoolean("firstRun",true);
+
+        if(firstRun) {
+            Intent intro = new Intent(getApplicationContext(),Intro.class);
+            startActivity(intro);
+        }
+
         Mapbox.getInstance(this, getString(R.string.access_token));
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
