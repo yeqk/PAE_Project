@@ -1,8 +1,8 @@
 package com.example.pae_project;
 
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -18,8 +18,11 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
+import com.github.pengrad.mapscaleview.MapScaleView;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
+import com.mapbox.android.gestures.StandardScaleGestureDetector;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
@@ -52,9 +55,6 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
     private static final String TAG = "OffManActivity";
 
-    private static final String HEATMAP_SOURCE_ID = "HEATMAP_SOURCE_ID";
-    private static final String HEATMAP_LAYER_ID = "HEATMAP_LAYER_ID";
-
     private PermissionsManager permissionsManager;
 
     // JSON encoding/decoding
@@ -77,24 +77,42 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
     private LocationComponent locationComponent;
 
+    //scale view
+    MapScaleView scaleView;
+
+
+    //flags for 2, 3 , 4 g visibility
+    private boolean pressed_2g;
+    private boolean pressed_3g;
+    private boolean pressed_4g;
+    private FloatingActionButton fab_2g;
+    private FloatingActionButton fab_3g;
+    private FloatingActionButton fab_4g;
 
     private HeatMap hm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+
+
         Mapbox.getInstance(this, getString(R.string.access_token));
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        scaleView = (MapScaleView) findViewById(R.id.scaleView);
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
+
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(@NonNull MapboxMap mapboxMap) {
 
                 map = mapboxMap;
+
                 mapboxMap.setStyle(Style.MAPBOX_STREETS, new Style.OnStyleLoaded() {
                     @Override
                     public void onStyleLoaded(@NonNull Style style) {
@@ -107,14 +125,84 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
                         enableLocationComponent(style);
 
-                        hm = new HeatMap(MainActivity.this);
+                        hm = new HeatMap(MainActivity.this, style);
                         hm.addANT_2GSource(style);
                         hm.addHeatmapLayer(style);
                         hm.addCircleLayer(style);
+
+
+                        pressed_2g = true;
+                        pressed_3g = true;
+                        pressed_4g = true;
+                        fab_2g = findViewById(R.id.action_2g);
+                        fab_3g = findViewById(R.id.action_3g);
+                        fab_4g = findViewById(R.id.action_4g);
+                        fab_2g.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                hm.set2GVisible();
+                                pressed_2g = !pressed_2g;
+                                if (!pressed_2g) {
+                                    fab_2g.setColorNormal(Color.parseColor("#bcb9b9"));
+                                }
+                                else {
+                                    fab_2g.setColorNormal(Color.parseColor("#608bd6"));
+                                }
+                            }
+                        });
+                        fab_3g.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                hm.set3GVisible();
+                                pressed_3g = !pressed_3g;
+                                if (!pressed_3g) {
+                                    fab_3g.setColorNormal(Color.parseColor("#bcb9b9"));
+                                }
+                                else {
+                                    fab_3g.setColorNormal(Color.parseColor("#68e665"));
+                                }
+                            }
+                        });
+                        fab_4g.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                hm.set4GVisible();
+                                pressed_4g = !pressed_4g;
+                                if (!pressed_4g) {
+                                    fab_4g.setColorNormal(Color.parseColor("#bcb9b9"));
+                                }
+                                else {
+                                    fab_4g.setColorNormal(Color.parseColor("#e45a30"));
+                                }
+                            }
+                        });
                     }
                 });
+
+
+                CameraPosition cameraPosition = map.getCameraPosition();
+                scaleView.update((float)cameraPosition.zoom, cameraPosition.target.getLatitude());
+
+
+                map.addOnCameraMoveListener(new MapboxMap.OnCameraMoveListener() {
+                    @Override
+                    public void onCameraMove() {
+                        CameraPosition cameraPosition = map.getCameraPosition();
+                        scaleView.update((float)cameraPosition.zoom, cameraPosition.target.getLatitude());
+                    }
+                });
+                map.addOnCameraIdleListener(new MapboxMap.OnCameraIdleListener() {
+                    @Override
+                    public void onCameraIdle() {
+                        CameraPosition cameraPosition = map.getCameraPosition();
+                        scaleView.update((float)cameraPosition.zoom, cameraPosition.target.getLatitude());
+                    }
+                });
+
+
             }
         });
+
 
 
     }
@@ -169,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
             locationComponent.setRenderMode(RenderMode.COMPASS);
 
             //Floating action button
-            FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.compass);
+            FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.locator);
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
