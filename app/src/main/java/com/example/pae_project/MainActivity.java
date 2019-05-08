@@ -1,9 +1,12 @@
 package com.example.pae_project;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -44,6 +47,9 @@ import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
     private ProgressBar progressBar;
     private MenuItem downloadButton;
     private MenuItem listButton;
+    private MenuItem addWifiButton;
 
     private boolean isEndNotified;
     private int regionSelected;
@@ -111,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
                         hm.addANT_2GSource(style);
                         hm.addHeatmapLayer(style);
                         hm.addCircleLayer(style);
+
                     }
                 });
             }
@@ -125,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         getMenuInflater().inflate(R.menu.menu_main, menu);
         downloadButton = menu.findItem(R.id.action_download);
         listButton = menu.findItem(R.id.action_list);
+        addWifiButton = menu.findItem(R.id.action_wifi);
         return true;
     }
 
@@ -141,6 +150,8 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
         } else if (id == R.id.action_list) {
             downloadedRegionList();
+        } else if (id == R.id.action_wifi) {
+            saveWifi();
         }
 
         return super.onOptionsItemSelected(item);
@@ -404,6 +415,66 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
 // Change the region state
         offlineRegion.setDownloadState(OfflineRegion.STATE_ACTIVE);
+    }
+
+    private void saveWifi() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        Location loc = locationComponent.getLastKnownLocation();
+        String jsonToAdd = "{ \"type\": \"Feature\", \"properties\": { \"id\": \"name\", \"mag\": 1 }, \"geometry\": { \"type\": \"Point\", \"coordinates\": [" + loc.getLongitude() +"," + loc.getLatitude() + "] } }";
+
+        //{ "type": "Feature", "properties": { "id": "ak16994521", "mag": 1 }, "geometry": { "type": "Point", "coordinates": [ -151.5129, 63.1016, 0.0 ] } },
+
+        // afegir a geojson
+        // TRACTAR ERROR SI JA EXISTEIX
+        System.out.println("66666666666666666666666666666666666666666666666666666666666666666666666666666666666666");
+        addWifiJson(jsonToAdd);
+
+        mapView.getMapAsync(new OnMapReadyCallback() {
+            @Override
+            public void onMapReady(@NonNull MapboxMap mapboxMap) {
+
+                Style s = mapboxMap.getStyle();
+                hm.addANT_Wifiource(s);
+                hm.addHeatmapLayerWIFI(s);
+                hm.addCircleLayerWIFI(s);
+            }
+        });
+    }
+    private void addWifiJson(String jsonToAdd){
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(
+                    new InputStreamReader(getAssets().open("wifi.geojson")));
+
+            // do reading, usually loop until end of file reading
+            String mLine;
+            Boolean next = false;
+            String GeoOut="";
+            while ((mLine = reader.readLine()) != null) {
+
+                if(next)
+                    GeoOut += "\n"+jsonToAdd+"\n";
+
+                GeoOut +="\n"+mLine+"\n";
+
+                next=false;
+                if(mLine.equals( "\"features\": ["))
+                    next=true;
+            }
+            System.out.println(GeoOut);
+        } catch (IOException e) {
+            //log the exception
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    //log the exception
+                }
+            }
+        }
     }
 
     private void downloadedRegionList() {
