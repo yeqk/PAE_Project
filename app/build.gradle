@@ -32,6 +32,8 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
     implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:7.3.2'
+    implementation 'com.github.pengrad:mapscaleview:1.4.2'
+    implementation 'com.getbase:floatingactionbutton:1.10.1'
 
     implementation 'agency.tango.android:material-intro-screen:0.0.5'
 
