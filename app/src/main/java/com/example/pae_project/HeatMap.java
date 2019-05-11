@@ -13,6 +13,7 @@ import com.mapbox.mapboxsdk.style.layers.Property;
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -68,13 +69,23 @@ public class HeatMap {
         style = st;
     }
 
-    public void addANT_2GSource(@NonNull Style loadedMapStyle) {
-        GeoJsonSource antenes2g = new GeoJsonSource(ANT_2G_SOURCE_ID, loadJsonFromAsset("data_2g.geojson"));
-        loadedMapStyle.addSource(antenes2g);
-        GeoJsonSource antenes3g = new GeoJsonSource(ANT_3G_SOURCE_ID, loadJsonFromAsset("data_3g.geojson"));
-        loadedMapStyle.addSource(antenes3g);
-        GeoJsonSource antenes4g = new GeoJsonSource(ANT_4G_SOURCE_ID, loadJsonFromAsset("data_4g.geojson"));
-        loadedMapStyle.addSource(antenes4g);
+    public void addANT_2GSource(@NonNull Style loadedMapStyle, Boolean fromAssets) {
+            GeoJsonSource antenes2g = new GeoJsonSource(ANT_2G_SOURCE_ID, loadJsonFromAsset("datos_2g_reales.geojson"));
+            loadedMapStyle.addSource(antenes2g);
+            GeoJsonSource antenes3g = new GeoJsonSource(ANT_3G_SOURCE_ID, loadJsonFromAsset("datos_3g_reales.geojson"));
+            loadedMapStyle.addSource(antenes3g);
+            GeoJsonSource antenes4g = new GeoJsonSource(ANT_4G_SOURCE_ID, loadJsonFromAsset("datos_4g_reales.geojson"));
+            loadedMapStyle.addSource(antenes4g);
+
+    }
+
+    public void update(@NonNull Style loadedMapStyle) {
+        GeoJsonSource ss2 = loadedMapStyle.getSourceAs(ANT_2G_SOURCE_ID);
+        ss2.setGeoJson(loadFromInternalStorage("data_2g_copy.geojson"));
+        GeoJsonSource ss3 = loadedMapStyle.getSourceAs(ANT_3G_SOURCE_ID);
+        ss3.setGeoJson(loadFromInternalStorage("data_3g_copy.geojson"));
+        GeoJsonSource ss4 = loadedMapStyle.getSourceAs(ANT_4G_SOURCE_ID);
+        ss4.setGeoJson(loadFromInternalStorage("data_4g_copy.geojson"));
     }
 
     public void addHeatmapLayer(@NonNull Style loadedMapStyle) {
@@ -97,10 +108,6 @@ public class HeatMap {
                                 literal(1), rgba(178, 24, 43 ,0.5)
                         )
                 ),
-
-
-// Increase the heatmap color weight weight by zoom level
-// heatmap-intensity is a multiplier on top of heatmap-weight
 
 // Adjust the heatmap radius by zoom level
                 heatmapRadius(
@@ -145,9 +152,6 @@ public class HeatMap {
                 ),
 
 
-// Increase the heatmap color weight weight by zoom level
-// heatmap-intensity is a multiplier on top of heatmap-weight
-
 // Adjust the heatmap radius by zoom level
                 heatmapRadius(
                         interpolate(
@@ -191,10 +195,6 @@ public class HeatMap {
                         )
                 ),
 
-
-// Increase the heatmap color weight weight by zoom level
-// heatmap-intensity is a multiplier on top of heatmap-weight
-
 // Adjust the heatmap radius by zoom level
                 heatmapRadius(
                         interpolate(
@@ -231,14 +231,7 @@ public class HeatMap {
                         rgba(0, 0, 255, 0.7)
                 ),
 
-// Transition from heatmap to circle layer by zoom level
-                circleOpacity(
-                        interpolate(
-                                linear(), zoom(),
-                                stop(7, 0),
-                                stop(8, 1)
-                        )
-                ),
+
                 circleStrokeColor("white"),
                 circleStrokeWidth(1.0f)
         );
@@ -259,14 +252,7 @@ public class HeatMap {
                         rgba(0, 255, 0, 0.7)
                 ),
 
-// Transition from heatmap to circle layer by zoom level
-                circleOpacity(
-                        interpolate(
-                                linear(), zoom(),
-                                stop(7, 0),
-                                stop(8, 1)
-                        )
-                ),
+
                 circleStrokeColor("white"),
                 circleStrokeWidth(1.0f)
         );
@@ -287,14 +273,6 @@ public class HeatMap {
                         rgba(255, 0, 0, 0.7)
                 ),
 
-// Transition from heatmap to circle layer by zoom level
-                circleOpacity(
-                        interpolate(
-                                linear(), zoom(),
-                                stop(7, 0),
-                                stop(8, 1)
-                        )
-                ),
                 circleStrokeColor("white"),
                 circleStrokeWidth(1.0f)
         );
@@ -340,6 +318,21 @@ public class HeatMap {
 // Using this method to load in GeoJSON files from the assets folder.
         try {
             InputStream is = ctx.getAssets().open(filename);
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            return new String(buffer, "UTF-8");
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return null;
+        }
+    }
+    private String loadFromInternalStorage(String filename) {
+// Using this method to load in GeoJSON files from the assets folder.
+        try {
+            FileInputStream is = ctx.openFileInput(filename);
             int size = is.available();
             byte[] buffer = new byte[size];
             is.read(buffer);
