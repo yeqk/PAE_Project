@@ -24,6 +24,7 @@ import android.widget.Toast;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -421,7 +422,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        Location loc = locationComponent.getLastKnownLocation();
+        final Location loc = locationComponent.getLastKnownLocation();
         String jsonToAdd = "{ \"type\": \"Feature\", \"properties\": { \"id\": \"name\", \"mag\": 1 }, \"geometry\": { \"type\": \"Point\", \"coordinates\": [" + loc.getLongitude() +"," + loc.getLatitude() + "] } }";
 
         //{ "type": "Feature", "properties": { "id": "ak16994521", "mag": 1 }, "geometry": { "type": "Point", "coordinates": [ -151.5129, 63.1016, 0.0 ] } },
@@ -435,13 +436,14 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
             @Override
             public void onMapReady(@NonNull MapboxMap mapboxMap) {
 
-                Style s = mapboxMap.getStyle();
-                hm.addANT_Wifiource(s);
-                hm.addHeatmapLayerWIFI(s);
-                hm.addCircleLayerWIFI(s);
+                MarkerOptions options = new MarkerOptions();
+                options.title("WiFi: WLAN_2534 \nPWD: 2d5f88e2r");
+                options.position(new LatLng(  loc.getLatitude() , loc.getLongitude()));
+                mapboxMap.addMarker(options);
             }
         });
     }
+
     private void addWifiJson(String jsonToAdd){
         BufferedReader reader = null;
         try {
