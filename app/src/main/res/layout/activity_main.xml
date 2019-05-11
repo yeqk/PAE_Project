@@ -33,9 +33,43 @@
         fab:fab_colorNormal="@color/white"
         fab:fab_colorPressed="@color/white_pressed"
         fab:fab_size="mini"
-        app:fab_icon="@drawable/ic_my_location_black_24dp"
-        app:srcCompat="@android:drawable/ic_menu_compass" />
+        app:fab_icon="@drawable/ic_my_location_black_24dp" />
+<!-- Buttons for update testing
+    <com.getbase.floatingactionbutton.FloatingActionButton
+    android:id="@+id/writeFile"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="top|left"
+    android:layout_marginTop="116dp"
+    android:clickable="true"
+    fab:fab_colorNormal="@color/white"
+    fab:fab_colorPressed="@color/white_pressed"
+    fab:fab_size="mini"
+    app:fab_icon="@drawable/ic_my_location_black_24dp" />
 
+    <com.getbase.floatingactionbutton.FloatingActionButton
+        android:id="@+id/readFile"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|left"
+        android:layout_marginTop="216dp"
+        android:clickable="true"
+        fab:fab_colorNormal="@color/white"
+        fab:fab_colorPressed="@color/white_pressed"
+        fab:fab_size="mini"
+        app:fab_icon="@drawable/ic_my_location_black_24dp" />
+    <com.getbase.floatingactionbutton.FloatingActionButton
+        android:id="@+id/updateFile"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|left"
+        android:layout_marginTop="316dp"
+        android:clickable="true"
+        fab:fab_colorNormal="@color/white"
+        fab:fab_colorPressed="@color/white_pressed"
+        fab:fab_size="mini"
+        app:fab_icon="@drawable/ic_my_location_black_24dp" />
+-->
     <com.getbase.floatingactionbutton.FloatingActionsMenu
         android:id="@+id/multiple_actions"
         android:layout_width="wrap_content"
@@ -53,7 +87,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:fab_icon="@drawable/icon_2g"
-            fab:fab_colorNormal="@color/red"
+            fab:fab_colorNormal="@color/blue"
             fab:fab_size="mini"
             fab:fab_colorPressed="@color/white_pressed"/>
 
@@ -71,7 +105,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:fab_icon="@drawable/icon_4g"
-            fab:fab_colorNormal="@color/blue"
+            fab:fab_colorNormal="@color/red"
             fab:fab_size="mini"
             fab:fab_colorPressed="@color/white_pressed"/>
 
