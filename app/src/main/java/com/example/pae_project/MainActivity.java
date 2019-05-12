@@ -1,11 +1,16 @@
 package com.example.pae_project;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.pm.PackageManager;
+
+import android.content.Context;
+import android.content.Intent;
+import android.content.res.AssetManager;
+import android.graphics.Color;
+
 import android.location.Location;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
+import android.os.Environment;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -23,8 +28,11 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
+import com.github.pengrad.mapscaleview.MapScaleView;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
+import com.mapbox.android.gestures.StandardScaleGestureDetector;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
@@ -51,8 +59,18 @@ import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,9 +78,6 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements PermissionsListener {
 
     private static final String TAG = "OffManActivity";
-
-    private static final String HEATMAP_SOURCE_ID = "HEATMAP_SOURCE_ID";
-    private static final String HEATMAP_LAYER_ID = "HEATMAP_LAYER_ID";
 
     private PermissionsManager permissionsManager;
 
@@ -87,6 +102,24 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
     private LocationComponent locationComponent;
 
+    //scale view
+    MapScaleView scaleView;
+
+
+    //flags for 2, 3 , 4 g visibility
+    private boolean pressed_2g;
+    private boolean pressed_3g;
+    private boolean pressed_4g;
+    private FloatingActionButton fab_2g;
+    private FloatingActionButton fab_3g;
+    private FloatingActionButton fab_4g;
+
+    //testing buttons
+    private FloatingActionButton fab_write;
+    private FloatingActionButton fab_read;
+    private FloatingActionButton fab_update;
+
+    private Style sty;
 
     private HeatMap hm;
 
@@ -98,13 +131,18 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        scaleView = (MapScaleView) findViewById(R.id.scaleView);
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
+
+
+        //---------------------------------------------
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(@NonNull MapboxMap mapboxMap) {
 
                 map = mapboxMap;
+
                 mapboxMap.setStyle(Style.MAPBOX_STREETS, new Style.OnStyleLoaded() {
                     @Override
                     public void onStyleLoaded(@NonNull Style style) {
@@ -114,20 +152,194 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
 // Set up the offlineManager
                         offlineManager = OfflineManager.getInstance(MainActivity.this);
-
+                        sty = style;
                         enableLocationComponent(style);
 
-                        hm = new HeatMap(MainActivity.this);
-                        hm.addANT_2GSource(style);
+                        hm = new HeatMap(MainActivity.this, style);
+                        hm.addANT_2GSource(style, true);
                         hm.addHeatmapLayer(style);
                         hm.addCircleLayer(style);
 
+
+                        pressed_2g = true;
+                        pressed_3g = true;
+                        pressed_4g = true;
+                        fab_2g = findViewById(R.id.action_2g);
+                        fab_3g = findViewById(R.id.action_3g);
+                        fab_4g = findViewById(R.id.action_4g);
+                        fab_2g.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                hm.set2GVisible();
+                                pressed_2g = !pressed_2g;
+                                if (!pressed_2g) {
+                                    fab_2g.setColorNormal(Color.parseColor("#bcb9b9"));
+                                }
+                                else {
+                                    fab_2g.setColorNormal(Color.parseColor("#608bd6"));
+                                }
+                            }
+                        });
+                        fab_3g.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                hm.set3GVisible();
+                                pressed_3g = !pressed_3g;
+                                if (!pressed_3g) {
+                                    fab_3g.setColorNormal(Color.parseColor("#bcb9b9"));
+                                }
+                                else {
+                                    fab_3g.setColorNormal(Color.parseColor("#68e665"));
+                                }
+                            }
+                        });
+                        fab_4g.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                hm.set4GVisible();
+                                pressed_4g = !pressed_4g;
+                                if (!pressed_4g) {
+                                    fab_4g.setColorNormal(Color.parseColor("#bcb9b9"));
+                                }
+                                else {
+                                    fab_4g.setColorNormal(Color.parseColor("#e45a30"));
+                                }
+                            }
+                        });
+/*
+                        //testing
+                        fab_read = findViewById(R.id.readFile);
+                        fab_write = findViewById(R.id.writeFile);
+                        fab_read.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                String s = read_file(getApplicationContext(),"data_2g_copy.geojson");
+                                Log.d("Contenido Fichero", s);
+                            }
+                        });
+                        fab_write.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                //-------------------------------- copy asset test
+                                copyAssets();
+                                if (isFilePresent("data_2g.geojson")) {
+                                    Log.d("FileExists:" , "true");
+                                }
+                                else {
+                                    Log.d("FileExists:" , "false");
+                                }
+                            }
+                        });
+                        fab_update = findViewById(R.id.updateFile);
+                        fab_update.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+
+                                hm.update(sty);
+
+
+                            }
+                        });
+                        */
+
                     }
                 });
+
+
+                CameraPosition cameraPosition = map.getCameraPosition();
+                scaleView.update((float)cameraPosition.zoom, cameraPosition.target.getLatitude());
+
+
+                map.addOnCameraMoveListener(new MapboxMap.OnCameraMoveListener() {
+                    @Override
+                    public void onCameraMove() {
+                        CameraPosition cameraPosition = map.getCameraPosition();
+                        scaleView.update((float)cameraPosition.zoom, cameraPosition.target.getLatitude());
+                    }
+                });
+                map.addOnCameraIdleListener(new MapboxMap.OnCameraIdleListener() {
+                    @Override
+                    public void onCameraIdle() {
+                        CameraPosition cameraPosition = map.getCameraPosition();
+                        scaleView.update((float)cameraPosition.zoom, cameraPosition.target.getLatitude());
+                    }
+                });
+
+
             }
         });
 
 
+
+    }
+//copy assets file to internal storage
+    private void copyAssets() {
+        AssetManager assetManager = getAssets();
+        //files to copy
+        String[] files = {"data_2g_copy.geojson", "data_3g_copy.geojson", "data_4g_copy.geojson"};
+        //try {
+            //files = assetManager.list("");
+            Log.d("files size:", String.valueOf(files.length));
+            for (String f : files) {
+                Log.d("files copied:", f);
+            }
+
+        //} catch (IOException e) {
+         //   Log.e("tag", "Failed to get asset file list.", e);
+        //}
+        for(String filename : files) {
+            InputStream in = null;
+            OutputStream out = null;
+            try {
+                in = assetManager.open(filename);
+
+                File outFile = new File(getApplicationContext().getFilesDir(), filename);
+
+                out = new FileOutputStream(outFile);
+                copyFile(in, out);
+                in.close();
+                in = null;
+                out.flush();
+                out.close();
+                out = null;
+            } catch(IOException e) {
+                Log.e("tag", "Failed to copy asset file: " + filename, e);
+            }
+        }
+    }
+
+    private void copyFile(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[1024];
+        int read;
+        while((read = in.read(buffer)) != -1){
+            out.write(buffer, 0, read);
+        }
+    }
+
+    public boolean isFilePresent(String fileName) {
+        String path = getApplicationContext().getFilesDir().getAbsolutePath() + "/" + fileName;
+        Log.d("fileDir:", path);
+        File file = new File(path);
+        return file.exists();
+    }
+    public String read_file(Context context, String filename) {
+        try {
+            FileInputStream fis = context.openFileInput(filename);
+            InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
+            BufferedReader bufferedReader = new BufferedReader(isr);
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+            return sb.toString();
+        } catch (FileNotFoundException e) {
+            return "";
+        } catch (UnsupportedEncodingException e) {
+            return "";
+        } catch (IOException e) {
+            return "";
+        }
     }
 
     @Override
@@ -183,7 +395,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
             locationComponent.setRenderMode(RenderMode.COMPASS);
 
             //Floating action button
-            FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.compass);
+            FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.locator);
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
