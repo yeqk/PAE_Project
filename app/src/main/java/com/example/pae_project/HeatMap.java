@@ -40,6 +40,7 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.heatmapWeight;
 
 public class HeatMap {
 
+
     private static final String ANT_2G_SOURCE_ID = "ANT_2Gs";
     private static final String ANT_3G_SOURCE_ID = "ANT_3Gs";
     private static final String ANT_4G_SOURCE_ID = "ANT_4Gs";
@@ -49,7 +50,6 @@ public class HeatMap {
     private static final String CIRCLE_LAYER_2G_ID = "ANT_2Gs-circle";
     private static final String CIRCLE_LAYER_3G_ID = "ANT_3Gs-circle";
     private static final String CIRCLE_LAYER_4G_ID = "ANT_4Gs-circle";
-
 
 
     Context ctx;

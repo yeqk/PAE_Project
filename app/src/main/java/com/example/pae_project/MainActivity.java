@@ -1,14 +1,18 @@
 package com.example.pae_project;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.Color;
+
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -20,6 +24,7 @@ import android.content.DialogInterface;
 import android.support.annotation.NonNull;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -29,6 +34,7 @@ import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.android.gestures.StandardScaleGestureDetector;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -53,6 +59,8 @@ import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -62,6 +70,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,6 +91,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
     private ProgressBar progressBar;
     private MenuItem downloadButton;
     private MenuItem listButton;
+    private MenuItem addWifiButton;
 
     private boolean isEndNotified;
     private int regionSelected;
@@ -231,6 +241,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
                             }
                         });
                         */
+
                     }
                 });
 
@@ -337,6 +348,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         getMenuInflater().inflate(R.menu.menu_main, menu);
         downloadButton = menu.findItem(R.id.action_download);
         listButton = menu.findItem(R.id.action_list);
+        addWifiButton = menu.findItem(R.id.action_wifi);
         return true;
     }
 
@@ -353,6 +365,8 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
         } else if (id == R.id.action_list) {
             downloadedRegionList();
+        } else if (id == R.id.action_wifi) {
+            saveWifi();
         }
 
         return super.onOptionsItemSelected(item);
@@ -616,6 +630,109 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
 // Change the region state
         offlineRegion.setDownloadState(OfflineRegion.STATE_ACTIVE);
+    }
+
+    private void saveWifi() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        final Location loc = locationComponent.getLastKnownLocation();
+        String jsonToAdd = "{ \"type\": \"Feature\", \"properties\": { \"id\": \"name\", \"mag\": 1 }, \"geometry\": { \"type\": \"Point\", \"coordinates\": [" + loc.getLongitude() +"," + loc.getLatitude() + "] } }";
+
+        //{ "type": "Feature", "properties": { "id": "ak16994521", "mag": 1 }, "geometry": { "type": "Point", "coordinates": [ -151.5129, 63.1016, 0.0 ] } },
+
+        // afegir a geojson
+        // TRACTAR ERROR SI JA EXISTEIX
+        System.out.println("66666666666666666666666666666666666666666666666666666666666666666666666666666666666666");
+        addWifiJson(jsonToAdd);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+        final EditText SSIDName = new EditText(MainActivity.this);
+        SSIDName.setHint("SSID");
+        final EditText wifipwd = new EditText(MainActivity.this);
+        wifipwd.setHint("Password");
+
+        Context context = mapView.getContext();
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        layout.addView(SSIDName); // Notice this is an add method
+
+        layout.addView(wifipwd);
+
+// Build the dialog box
+        builder.setTitle("Afegir WiFi")
+                .setView(layout)
+                .setMessage("Introdueix les credencials del WiFi:")
+                .setPositiveButton("Acceptar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        final String wifiname = SSIDName.getText().toString();
+                        final String wifipass =  wifipwd.getText().toString();
+                        afegirWifi(wifiname,wifipass,loc);
+                    }
+                })
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+
+// Display the dialog
+        builder.show();
+
+    }
+
+    private void afegirWifi(final String wifiname, final String wifipass, final Location loc){
+        mapView.getMapAsync(new OnMapReadyCallback() {
+            @Override
+            public void onMapReady(@NonNull MapboxMap mapboxMap) {
+
+                MarkerOptions options = new MarkerOptions();
+                options.title("WiFi: "+  wifiname+ "\nPWD: "+ wifipass);
+                options.position(new LatLng(  loc.getLatitude() , loc.getLongitude()));
+                mapboxMap.addMarker(options);
+            }
+        });
+    }
+
+
+
+    private void addWifiJson(String jsonToAdd){
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(
+                    new InputStreamReader(getAssets().open("wifi.geojson")));
+
+            // do reading, usually loop until end of file reading
+            String mLine;
+            Boolean next = false;
+            String GeoOut="";
+            while ((mLine = reader.readLine()) != null) {
+
+                if(next)
+                    GeoOut += "\n"+jsonToAdd+"\n";
+
+                GeoOut +="\n"+mLine+"\n";
+
+                next=false;
+                if(mLine.equals( "\"features\": ["))
+                    next=true;
+            }
+            System.out.println(GeoOut);
+        } catch (IOException e) {
+            //log the exception
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    //log the exception
+                }
+            }
+        }
     }
 
     private void downloadedRegionList() {
