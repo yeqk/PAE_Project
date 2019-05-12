@@ -1,6 +1,7 @@
 package com.example.pae_project;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 
 import android.content.Context;
@@ -9,6 +10,8 @@ import android.content.res.AssetManager;
 import android.graphics.Color;
 
 import android.location.Location;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.Snackbar;
@@ -648,8 +651,12 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
+        @SuppressLint("WifiManagerLeak") WifiManager wifiManager = (WifiManager) getSystemService (Context.WIFI_SERVICE);
+        WifiInfo info = wifiManager.getConnectionInfo ();
+        String ssid  = info.getSSID();
+
         final EditText SSIDName = new EditText(MainActivity.this);
-        SSIDName.setHint("SSID");
+        SSIDName.setText(ssid);
         final EditText wifipwd = new EditText(MainActivity.this);
         wifipwd.setHint("Password");
 
