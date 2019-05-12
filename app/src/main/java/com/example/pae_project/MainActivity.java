@@ -1,6 +1,7 @@
 package com.example.pae_project;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -18,6 +19,7 @@ import android.content.DialogInterface;
 import android.support.annotation.NonNull;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -432,17 +434,59 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         System.out.println("66666666666666666666666666666666666666666666666666666666666666666666666666666666666666");
         addWifiJson(jsonToAdd);
 
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+        final EditText SSIDName = new EditText(MainActivity.this);
+        SSIDName.setHint("SSID");
+        final EditText wifipwd = new EditText(MainActivity.this);
+        wifipwd.setHint("Password");
+
+        Context context = mapView.getContext();
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        layout.addView(SSIDName); // Notice this is an add method
+
+        layout.addView(wifipwd);
+
+// Build the dialog box
+        builder.setTitle("Afegir WiFi")
+                .setView(layout)
+                .setMessage("Introdueix les credencials del WiFi:")
+                .setPositiveButton("Acceptar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        final String wifiname = SSIDName.getText().toString();
+                        final String wifipass =  wifipwd.getText().toString();
+                        afegirWifi(wifiname,wifipass,loc);
+                    }
+                })
+                .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+
+// Display the dialog
+        builder.show();
+
+    }
+
+    private void afegirWifi(final String wifiname, final String wifipass, final Location loc){
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(@NonNull MapboxMap mapboxMap) {
 
                 MarkerOptions options = new MarkerOptions();
-                options.title("WiFi: WLAN_2534 \nPWD: 2d5f88e2r");
+                options.title("WiFi: "+  wifiname+ "\nPWD: "+ wifipass);
                 options.position(new LatLng(  loc.getLatitude() , loc.getLongitude()));
                 mapboxMap.addMarker(options);
             }
         });
     }
+
+
 
     private void addWifiJson(String jsonToAdd){
         BufferedReader reader = null;
