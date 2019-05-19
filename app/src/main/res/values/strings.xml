@@ -25,6 +25,12 @@
     <string name="user_location_permission_explanation">Aquesta app necessita permisos per mostrar la seva funcionalitat.</string>
     <string name="user_location_permission_not_granted">No heu proporcionat permisos de localització.</string>
 
+    //file to save new added wifis.
+    <string name="new_wifis_json">NewWifis.json</string>
+
+    //file to save all wifis.
+    <string name="wifis_json">wifis.json</string>
+
 
 
 </resources>

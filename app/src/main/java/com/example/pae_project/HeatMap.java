@@ -70,22 +70,26 @@ public class HeatMap {
     }
 
     public void addANT_2GSource(@NonNull Style loadedMapStyle, Boolean fromAssets) {
-            GeoJsonSource antenes2g = new GeoJsonSource(ANT_2G_SOURCE_ID, loadJsonFromAsset("datos_2g_reales.geojson"));
+            GeoJsonSource antenes2g = new GeoJsonSource(ANT_2G_SOURCE_ID, loadJsonFromAsset("datos_2g_default.geojson"));
             loadedMapStyle.addSource(antenes2g);
-            GeoJsonSource antenes3g = new GeoJsonSource(ANT_3G_SOURCE_ID, loadJsonFromAsset("datos_3g_reales.geojson"));
+            GeoJsonSource antenes3g = new GeoJsonSource(ANT_3G_SOURCE_ID, loadJsonFromAsset("datos_3g_default.geojson"));
             loadedMapStyle.addSource(antenes3g);
-            GeoJsonSource antenes4g = new GeoJsonSource(ANT_4G_SOURCE_ID, loadJsonFromAsset("datos_4g_reales.geojson"));
+            GeoJsonSource antenes4g = new GeoJsonSource(ANT_4G_SOURCE_ID, loadJsonFromAsset("datos_4g_default.geojson"));
             loadedMapStyle.addSource(antenes4g);
 
     }
 
-    public void update(@NonNull Style loadedMapStyle) {
+    public void update2g(@NonNull Style loadedMapStyle) {
         GeoJsonSource ss2 = loadedMapStyle.getSourceAs(ANT_2G_SOURCE_ID);
-        ss2.setGeoJson(loadFromInternalStorage("data_2g_copy.geojson"));
+        ss2.setGeoJson(loadFromInternalStorage("data_2g_reales.geojson"));
+    }
+    public void update3g(@NonNull Style loadedMapStyle) {
         GeoJsonSource ss3 = loadedMapStyle.getSourceAs(ANT_3G_SOURCE_ID);
-        ss3.setGeoJson(loadFromInternalStorage("data_3g_copy.geojson"));
+        ss3.setGeoJson(loadFromInternalStorage("data_3g_reales.geojson"));
+    }
+    public void update4g(@NonNull Style loadedMapStyle) {
         GeoJsonSource ss4 = loadedMapStyle.getSourceAs(ANT_4G_SOURCE_ID);
-        ss4.setGeoJson(loadFromInternalStorage("data_4g_copy.geojson"));
+        ss4.setGeoJson(loadFromInternalStorage("data_4g_reales.geojson"));
     }
 
     public void addHeatmapLayer(@NonNull Style loadedMapStyle) {
@@ -344,5 +348,7 @@ public class HeatMap {
             return null;
         }
     }
+
+
 }
 
