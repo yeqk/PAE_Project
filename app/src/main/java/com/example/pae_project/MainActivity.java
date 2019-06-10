@@ -372,6 +372,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
             updateAnt();
         } else if (id == R.id.action_update_wifis) {
+            Log.d("AQUIIII", "aaaaaaaaaaaa");
             updateWifis();
         }
 
