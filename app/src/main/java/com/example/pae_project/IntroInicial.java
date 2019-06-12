@@ -39,6 +39,7 @@ public class IntroInicial extends MaterialIntroActivity {
         @Override
         public void onFinish() {
             getSharedPreferences("PREFERENCE",MODE_PRIVATE).edit().putBoolean("firstRun",false).commit();
+            getSharedPreferences("PREFERENCE",MODE_PRIVATE).edit().putBoolean("firstUpdate",true).commit();
             Intent main = new Intent(getApplicationContext(),MainActivity.class);
             startActivity(main);
         }

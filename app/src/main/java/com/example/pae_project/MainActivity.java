@@ -1,20 +1,18 @@
 package com.example.pae_project;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
+
+import android.app.ProgressDialog;
+
 import android.content.pm.PackageManager;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.res.AssetManager;
 import android.graphics.Color;
 
 import android.location.Location;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.os.Environment;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -25,18 +23,29 @@ import android.view.MenuItem;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.support.annotation.NonNull;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.NetworkResponse;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.HttpHeaderParser;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.example.util.ReadWriteFiles;
 import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.github.pengrad.mapscaleview.MapScaleView;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
-import com.mapbox.android.gestures.StandardScaleGestureDetector;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
@@ -57,21 +66,16 @@ import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
-import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
 import java.util.ArrayList;
@@ -126,6 +130,13 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
     private HeatMap hm;
 
+    //Markers
+    ArrayList<Marker> markers;
+
+    //progress dialog
+    private ProgressDialog pDialog;
+    private ProgressDialog pDialog2;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -137,7 +148,10 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         scaleView = (MapScaleView) findViewById(R.id.scaleView);
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
+        markers = new ArrayList<Marker>();
 
+        pDialog = new ProgressDialog(this);
+        pDialog2 = new ProgressDialog(this);
 
         //---------------------------------------------
         mapView.getMapAsync(new OnMapReadyCallback() {
@@ -209,6 +223,16 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
                                 }
                             }
                         });
+
+                        Boolean firstUpdate = getSharedPreferences("PREFERENCE",MODE_PRIVATE).getBoolean("firstUpdate",false);
+                        if (firstUpdate) {
+                            getSharedPreferences("PREFERENCE",MODE_PRIVATE).edit().putBoolean("firstUpdate",false).commit();
+                            updateAnt();
+                            updateWifis();
+                        }
+                        if (ReadWriteFiles.isFilePresent(getString(R.string.wifis_json), getApplicationContext())) {
+                            updateWifisWithStorageFile();
+                        }
 /*
                         //testing
                         fab_read = findViewById(R.id.readFile);
@@ -275,6 +299,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
 
     }
+    /*
 //copy assets file to internal storage
     private void copyAssets() {
         AssetManager assetManager = getAssets();
@@ -318,32 +343,9 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
             out.write(buffer, 0, read);
         }
     }
+*/
 
-    public boolean isFilePresent(String fileName) {
-        String path = getApplicationContext().getFilesDir().getAbsolutePath() + "/" + fileName;
-        Log.d("fileDir:", path);
-        File file = new File(path);
-        return file.exists();
-    }
-    public String read_file(Context context, String filename) {
-        try {
-            FileInputStream fis = context.openFileInput(filename);
-            InputStreamReader isr = new InputStreamReader(fis, "UTF-8");
-            BufferedReader bufferedReader = new BufferedReader(isr);
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-            return sb.toString();
-        } catch (FileNotFoundException e) {
-            return "";
-        } catch (UnsupportedEncodingException e) {
-            return "";
-        } catch (IOException e) {
-            return "";
-        }
-    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -370,6 +372,12 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
             downloadedRegionList();
         } else if (id == R.id.action_wifi) {
             saveWifi();
+        } else if (id == R.id.action_update) {
+
+            updateAnt();
+        } else if (id == R.id.action_update_wifis) {
+            Log.d("AQUIIII", "aaaaaaaaaaaa");
+            updateWifis();
         }
 
         return super.onOptionsItemSelected(item);
@@ -647,7 +655,7 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
         // afegir a geojson
         // TRACTAR ERROR SI JA EXISTEIX
         System.out.println("66666666666666666666666666666666666666666666666666666666666666666666666666666666666666");
-        addWifiJson(jsonToAdd);
+        //addWifiJson(jsonToAdd);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 
@@ -677,7 +685,12 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
                     public void onClick(DialogInterface dialog, int which) {
                         final String wifiname = SSIDName.getText().toString();
                         final String wifipass =  wifipwd.getText().toString();
-                        afegirWifi(wifiname,wifipass,loc);
+                        if (wifiname.length() < 1 || wifipass.length() < 1) {
+                            Toast.makeText(getApplicationContext(), "SSID o contrasenya buit", Toast.LENGTH_LONG);
+                        } else {
+                            afegirWifi(wifiname, wifipass, loc);
+                        }
+
                     }
                 })
                 .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
@@ -700,18 +713,53 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
                 MarkerOptions options = new MarkerOptions();
                 options.title("WiFi: "+  wifiname+ "\nPWD: "+ wifipass);
                 options.position(new LatLng(  loc.getLatitude() , loc.getLongitude()));
-                mapboxMap.addMarker(options);
+                Marker mark = mapboxMap.addMarker(options);
+                markers.add(mark);
+                Toast.makeText(getApplicationContext(), "Wifi afegit", Toast.LENGTH_LONG).show();
+                addToNewWifis(wifiname,wifipass,loc);
+
             }
         });
+
     }
 
+    private void addToNewWifis(String wifiname, String wifipass, Location loc) {
+        String content = "";
+        JSONArray arrayObj= new JSONArray();
+
+        JSONObject wifi = new JSONObject();
+        try {
+            wifi.put("ssid", wifiname);
+            wifi.put("password", wifipass);
+            wifi.put("latitude", loc.getLatitude());
+            wifi.put("longitude", loc.getLongitude());
+
+
+            if (ReadWriteFiles.isFilePresent(getString(R.string.new_wifis_json),getApplicationContext())){
+                content = ReadWriteFiles.read_file(getApplicationContext(),getString(R.string.new_wifis_json));
+                arrayObj= new JSONArray(content);
+            }
+            content += wifi.toString();
+            arrayObj.put(wifi);
+            Log.d("New Wifi", arrayObj.toString());
+
+            //save to local storage
+            ReadWriteFiles.jsonToFile(arrayObj,getString(R.string.new_wifis_json), getApplicationContext());
+            ReadWriteFiles.insettToJsonArrayFile(wifi, getString(R.string.wifis_json), getApplicationContext());
+            String ss = ReadWriteFiles.read_file(getApplicationContext(),getString(R.string.wifis_json));
+            Log.d("ALL WIFIS", ss);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
 
 
     private void addWifiJson(String jsonToAdd){
         BufferedReader reader = null;
         try {
             reader = new BufferedReader(
-                    new InputStreamReader(getAssets().open("wifi.geojson")));
+                    new InputStreamReader(getAssets().open("wifi_default.json")));
 
             // do reading, usually loop until end of file reading
             String mLine;
@@ -898,5 +946,250 @@ public class MainActivity extends AppCompatActivity implements PermissionsListen
 
 // Show a toast
         Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+    }
+
+    public void updateAnt() {
+        // Showing progress dialog before making http request
+        pDialog = new ProgressDialog(this);
+        pDialog.setMessage("Loading...");
+        pDialog.show();
+
+        // Initialize a new RequestQueue instance
+
+        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+        //--------------------------------------------------2g
+        String url2g = "http://206.189.116.129:3000/datos2g";
+
+        JsonArrayRequest jsonObjectRequest2g = new JsonArrayRequest
+                (Request.Method.GET, url2g, null,new Response.Listener<JSONArray>() {
+
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        Log.d("Response", response.toString());
+                        ReadWriteFiles.copyToGeoJsonFile(response,"data_2g_reales.geojson",getApplicationContext());
+                        String ss = ReadWriteFiles.read_file(getApplicationContext(),"prueba.geojson");
+                        Log.d("FileCOntent: ", ss);
+                        hm.update2g(sty);
+
+                    }
+                }, new Response.ErrorListener() {
+
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO: Handle error
+                        Toast.makeText(getApplicationContext(), "Connection Error", Toast.LENGTH_LONG).show();
+                        Log.e("errorxx", error.toString());
+                    }
+                });
+        //--------------------------------------------------3g
+        String url3g = "http://206.189.116.129:3000/datos3g";
+
+        JsonArrayRequest jsonObjectRequest3g = new JsonArrayRequest
+                (Request.Method.GET, url3g, null,new Response.Listener<JSONArray>() {
+
+            @Override
+            public void onResponse(JSONArray response) {
+                Log.d("Response", response.toString());
+                ReadWriteFiles.copyToGeoJsonFile(response,"data_3g_reales.geojson",getApplicationContext());
+                String ss = ReadWriteFiles.read_file(getApplicationContext(),"prueba.geojson");
+                Log.d("FileCOntent: ", ss);
+                hm.update3g(sty);
+
+            }
+        }, new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                // TODO: Handle error
+                Toast.makeText(getApplicationContext(), "Connection Error", Toast.LENGTH_LONG).show();
+                Log.e("errorxx", error.toString());
+            }
+        });
+        //------------------------------------------------4g
+        String url4g = "http://206.189.116.129:3000/datos4g";
+
+        JsonArrayRequest jsonObjectRequest4g = new JsonArrayRequest
+                (Request.Method.GET, url4g, null,new Response.Listener<JSONArray>() {
+
+                    @Override
+                    public void onResponse(JSONArray response) {
+                        Log.d("Response", response.toString());
+                        ReadWriteFiles.copyToGeoJsonFile(response,"data_4g_reales.geojson",getApplicationContext());
+                        String ss = ReadWriteFiles.read_file(getApplicationContext(),"prueba.geojson");
+                        Log.d("FileCOntent: ", ss);
+                        hm.update4g(sty);
+                        hidePDialog();
+                        Log.d("AAAAAAAAAAA", "AAAAAAAAAAAAAAAAAAAAAAAAAa");
+
+
+
+                    }
+                }, new Response.ErrorListener() {
+
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO: Handle error
+                        Toast.makeText(getApplicationContext(), "Connection Error", Toast.LENGTH_LONG).show();
+                        Log.e("errorxx", error.toString());
+                    }
+                });
+        // Add JsonObjectRequest to the RequestQueue
+        requestQueue.add(jsonObjectRequest2g);
+        requestQueue.add(jsonObjectRequest3g);
+        requestQueue.add(jsonObjectRequest4g);
+
+    }
+
+    private void updateWifis() {
+        // Showing progress dialog before making http request
+        pDialog2 = new ProgressDialog(this);
+        pDialog2.setMessage("Loading...");
+        pDialog2.show();
+        Log.d("BBBBBBBBBBBB", "BBBBBBBBBBBBBBBBBB");
+        // Initialize a new RequestQueue instance
+        RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+        //--------------------------------------------------wifis
+        String url = "http://206.189.116.129:3000/addwifi";
+
+        try {
+            if (ReadWriteFiles.isFilePresent(getString(R.string.new_wifis_json), getApplicationContext())) {
+                JSONArray cont = new JSONArray(ReadWriteFiles.read_file(getApplicationContext(), getString(R.string.new_wifis_json)));
+                for (int i = 0; i < cont.length(); i++) {
+
+                    JSONObject jsonBody = cont.getJSONObject(i);
+
+                    final String mRequestBody = jsonBody.toString();
+
+                    StringRequest stringRequest = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
+                        @Override
+                        public void onResponse(String response) {
+                            Log.i("LOG_RESPONSE", response);
+                        }
+                    }, new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            Log.e("LOG_RESPONSE", error.toString());
+                        }
+                    }) {
+                        @Override
+                        public String getBodyContentType() {
+                            return "application/json; charset=utf-8";
+                        }
+
+                        @Override
+                        public byte[] getBody() throws AuthFailureError {
+                            try {
+                                return mRequestBody == null ? null : mRequestBody.getBytes("utf-8");
+                            } catch (UnsupportedEncodingException uee) {
+                                VolleyLog.wtf("Unsupported Encoding while trying to get the bytes of %s using %s", mRequestBody, "utf-8");
+                                return null;
+                            }
+                        }
+
+                        @Override
+                        protected Response<String> parseNetworkResponse(NetworkResponse response) {
+                            String responseString = "";
+                            if (response != null) {
+                                responseString = String.valueOf(response.statusCode);
+                            }
+                            return Response.success(responseString, HttpHeaderParser.parseCacheHeaders(response));
+                        }
+                    };
+
+                    requestQueue.add(stringRequest);
+
+                }
+
+            }
+
+            //remove "NewWifis.json" content
+            ReadWriteFiles.jsonToFile(new JSONArray("[]"), getString(R.string.new_wifis_json), getApplicationContext());
+
+            //update wifis.json file
+            String urlwifis = "http://206.189.116.129:3000/wifis";
+
+            JsonArrayRequest jsonObjectRequestWifis = new JsonArrayRequest
+                    (Request.Method.GET, urlwifis, null,new Response.Listener<JSONArray>() {
+
+                        @Override
+                        public void onResponse(JSONArray response) {
+                            Log.d("Response", response.toString());
+                            ReadWriteFiles.copyToJsonFileWifi(response,getString(R.string.wifis_json),getApplicationContext());
+                            String ss = ReadWriteFiles.read_file(getApplicationContext(),getString(R.string.wifis_json));
+                            Log.d("wifisFileCOntent: ", ss);
+                            hidePDialog2();
+                            updateWifisWithStorageFile();
+
+
+
+
+
+                        }
+                    }, new Response.ErrorListener() {
+
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            // TODO: Handle error
+                            Toast.makeText(getApplicationContext(), "Connection Error", Toast.LENGTH_LONG).show();
+                            Log.e("errorxx", error.toString());
+                        }
+                    });
+            requestQueue.add(jsonObjectRequestWifis);
+
+
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void updateWifisWithStorageFile() {
+        mapView.getMapAsync(new OnMapReadyCallback() {
+            @Override
+            public void onMapReady(@NonNull MapboxMap mapboxMap) {
+
+                //remove old markers
+                for(Marker m : markers) {
+                    mapboxMap.removeMarker(m);
+                }
+                //init markers
+                markers = new ArrayList<Marker>();
+
+                //add marks
+                if (ReadWriteFiles.isFilePresent(getString(R.string.wifis_json), getApplicationContext())) {
+                    String marks = ReadWriteFiles.read_file(getApplicationContext(), getString(R.string.wifis_json));
+                    try {
+                        JSONArray mjson = new JSONArray(marks);
+                        for (int i = 0; i < mjson.length(); i++) {
+                            MarkerOptions options = new MarkerOptions();
+                            options.title("WiFi: "+  mjson.getJSONObject(i).getString("ssid")+ "\nPWD: "+ mjson.getJSONObject(i).getString("password"));
+                            options.position(new LatLng(  mjson.getJSONObject(i).getDouble("latitude") , mjson.getJSONObject(i).getDouble("longitude")));
+                            Marker mark = mapboxMap.addMarker(options);
+                            markers.add(mark);
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+            }
+        });
+    }
+
+    //method to hide progressbar
+    private void hidePDialog() {
+        if (pDialog != null) {
+            pDialog.dismiss();
+            pDialog = null;
+        }
+    }
+
+    private void hidePDialog2() {
+        if (pDialog2 != null) {
+            pDialog2.dismiss();
+            pDialog2 = null;
+        }
     }
 }

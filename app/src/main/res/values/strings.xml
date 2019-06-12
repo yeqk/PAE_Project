@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PAE_Project</string>
+    <string name="app_name">Locant</string>
     <string name="access_token">pk.eyJ1IjoieWVxazk3IiwiYSI6ImNqdXF6Z3JzdTA4NzY0NG9jdmhvc2YwYXoifQ.TyC6mUlL8Shj5U_B0r4OPw</string>
     <string name="action_download">Download</string>
     <string name="action_list">Offline Areas</string>
@@ -24,6 +24,12 @@
 
     <string name="user_location_permission_explanation">Aquesta app necessita permisos per mostrar la seva funcionalitat.</string>
     <string name="user_location_permission_not_granted">No heu proporcionat permisos de localització.</string>
+
+    //file to save new added wifis.
+    <string name="new_wifis_json">NewWifis.json</string>
+
+    //file to save all wifis.
+    <string name="wifis_json">wifis.json</string>
 
 
 
