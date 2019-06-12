@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PAE_Project</string>
+    <string name="app_name">Locant</string>
     <string name="access_token">pk.eyJ1IjoieWVxazk3IiwiYSI6ImNqdXF6Z3JzdTA4NzY0NG9jdmhvc2YwYXoifQ.TyC6mUlL8Shj5U_B0r4OPw</string>
     <string name="action_download">Download</string>
     <string name="action_list">Offline Areas</string>
